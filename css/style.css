@@ -1,0 +1,58 @@
+body {
+  margin: 0;
+}
+
+.difficulties-container {
+  background-color: #efefef;
+  text-align: center;
+}
+
+.difficulty {
+  display: inline-block;
+}
+
+.timer-container {
+  text-align: center;
+}
+
+.timer-digits {
+  color: red;
+}
+
+.game-board {
+  text-align: center;
+}
+
+.row {
+}
+
+.cell {
+  background-color: #dedede;
+  border: 1px outset black;
+  display: inline-block;
+  vertical-align: top;
+  height: 2rem;
+  width: 2rem;
+}
+
+.cell:hover {
+  cursor: context-menu;
+}
+
+.cell-shown {
+  background-color: #efefef;
+}
+
+.cell-mark-correctly {
+  background-color: green;
+}
+
+.hint-emoji {
+  filter: grayscale(100%);
+}
+
+.hint-emoji:hover {
+  border: 1px solild black;
+  cursor: pointer;
+  filter: none;
+}
