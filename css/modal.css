@@ -1,0 +1,45 @@
+.modal-full-screen {
+  background-color: black;
+  display: none;
+  height: 100%;
+  width: 100%;
+}
+
+.modal-container {
+  background-color: black;
+  border: 10px solid #ff8c00;
+  border-radius: 1rem;
+  color: white;
+  left: 50%;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.modal-title {
+  background-color: #195da6;
+  font-size: 1.5rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.modal-text {
+  padding: 0.5rem;
+  text-align: justify;
+}
+
+.modal-close-btn {
+  background-color: #630000;
+  border: 1px solid white;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  letter-spacing: 0.2rem;
+  margin: 1rem auto;
+  padding: 0.5rem;
+  text-align: center;
+  width: 7rem;
+}
+
+.modal-close-btn:hover {
+  cursor: pointer;
+}

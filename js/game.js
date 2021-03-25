@@ -1,75 +1,102 @@
-// Define constans
-var SIZE = 4;
+'use strict';
+
+// SECTION 1: Define constans (mostly emojis)
+// Cells emojis
 var EMPTY = '';
 var MINE = '💥';
 var FLAG = '🚩';
+
+// Life emojis (for game's status)
 var ALIVE = '😲';
 var DEAD = '😵';
 var WIN = '😎';
-var HINT = '💡';
 
-// Define global vars and arrs
+// Game's features emojis (mostly for helpers)
+var LIVES = '💓';
+var HINT = '💡';
+var SAFE_CLICK = '🛡️';
+
+// Define global vars and arrs (games needed)
 var gBoard = [];
 var gGame = {
-    mines: 0,
     isPlaying: false,
-    lives: 0,
+    isLost: false,
+    difficuty: null,
+    mine: 0,
+    life: 0,
     isHintMode: false
 };
-var gCellId = 100;
 var gMineLocations = [];
-var gFlagAviable;
-var gHintsAvailable = 3;
+var gFlagAvailable;
+var gHintsAvailable;
+var gSafeClickAvailable;
 
-// Define game interval (not set yet)
+// Define game interval (just define, not set yet)
 var gGameInterval;
 
-// Define difficulty btns and spans arrs
+// Define difficulties btns and spans arrs
 var gElDifficultySpans = document.querySelectorAll(`.difficulty-text`);
 var gElDifficultyBtns = document.querySelectorAll(`[name="difficulty-btn"]`);
 
-// When page loads - hard check Easy difficulty (prevent bug) and initGame (4*4 mat, 2 mines)
+// Define best score sound
+var bestScoreAudio = new Audio(`./audio/win.mp3`);
+
+// When page loads - hard check easy difficulty (prevent bug) and initGame (4*4 mat, 2 mines)
 gElDifficultyBtns[0].checked = true;
-initGame(4, 2, 1);
+initGame();
 
 
-//      Define functions of the game
-// Define initGame() [gets size as int to create square mat and num of mines as int]
-function initGame(size, mineNum, lives) {
 
-    // If restarted from emoji - check difficulty and init again
-    if (!size || !mineNum) {
+// SECTION 2: functions of the game!
+// Define initGame()    - Parameters:
+//                      size = int, uses to create square mat.
+//                      mineNum = int, uses to determine how many mines will be on the board
+//                      helpers = int, uses to determine how many helpers (such as lives, hints, etc. will be available for the player)
+//                      - Use: Initialization game (reset vars, arrs, etc.)
+function initGame(size, mine, helper) {
+
+    // If necessary information miss - check game's difficulty and init again
+    if (!size || !mine || !helper) {
         checkDifficultyAndInit();
         return;
     }
 
-    // Clear timer (if excist)
-    document.querySelector(`.timer-digits`).innerText = 0;
+    // Change all preventing conditions to false (let the user start a game)
+    gGame.isLost = false;
+    gGame.isPlaying = false;
+
+    // Clear timer (if exist) & render 0 to DOM's timer
     clearInterval(gGameInterval);
+    document.querySelector(`.timer-digits`).innerText = 0;
 
-    // Create board
-    gBoard = buildBoard(size);
+    // reset game board and create new one
+    gBoard = [];
+    buildBoard(size);
 
-    // Handle mines
+    // Update gGame.difficulty
+    gGame.difficuty = size;
+
+    // Reset mines info and update gGame.mine
     gMineLocations = [];
-    gGame.mines = mineNum;
+    gGame.mine = mine;
 
     // Handle flags
-    gFlagAviable = mineNum;
+    gFlagAvailable = mine;
     renderFlagAvailable();
 
     // Handle lives
-    gGame.lives = lives;
-    renderLivesAvailable();
+    gGame.life = helper;
+    renderLifeAvailable();
 
     // Handle hints
-    gHintsAvailable = 3;
-    renderHintsAvailable();
+    gHintsAvailable = helper;
+    renderHintAvailable();
 
-    // Render board to DOM
-    renderBoard(gBoard);
+    // Handle safe clicks
+    gSafeClickAvailable = helper;
+    renderSafeClickAvailable();
 
-    // Let changing difficulty
+    // Loop over game's difficulties DOM elements and show them, so the client can change the game's difficulty
     for (var i = 0; i < gElDifficultyBtns.length; i++) {
         if (gElDifficultyBtns[i].checked) continue;
         else {
@@ -78,35 +105,45 @@ function initGame(size, mineNum, lives) {
         }
     }
 
+    var elDifficultySeperators = document.querySelectorAll(`.difficulties-seperator`);
+    for (var i = 0; i < elDifficultySeperators.length; i++) {
+        elDifficultySeperators[i].style.display = `inline`;
+    }
+
+    // Render the board to DOM
+    renderBoard(gBoard);
+
     // Become alive (render face to DOM)
     document.querySelector(`.restart-btn`).innerText = ALIVE;
+
+    // Show best score
+    renderBestScore(size);
 }
 
-// Define rightClicker [gets elCell to handle the cell clicked as flag]
-function rightClicker(elCell) {
+// Define rightClickCell()      - Parameter:
+//                              elCell = DOM obj, to determine which cell has clicked
+//                              - Use: when client right click on a cell (usually to mark it with flag)
+function rightClickCell(elCell) {
 
-    // If it's game's kick-off or hint mode - return
-    if (!gGame.isPlaying || gGame.isHintMode) return;
+    // If it's game's kick-off || cell already shown || game is on hint mode - return
+    if (!gGame.isPlaying || elCell.classList.contains(`cell-shown`) || gGame.isHintMode) return;
 
-    // Define helpers vars 
-    var cellI = elCell.dataset.i;
-    var cellJ = elCell.dataset.j;
-    var cell = gBoard[cellI][cellJ];
-
-    // If cell is shown - return
-    if (cell.isShown) return;
+    // Define helpers vars
+    var i = +elCell.dataset.i;
+    var j = +elCell.dataset.j;
+    var cell = gBoard[i][j];
 
     // If cell is marked - toggle marking off and increase flag conter by 1
     if (cell.isMarked) {
         cell.isMarked = false;
-        gFlagAviable++;
+        gFlagAvailable++;
         elCell.innerText = '';
     }
 
     // Else - Mark cell as flag and decrease flag counter by 1
     else {
         cell.isMarked = true;
-        gFlagAviable--;
+        gFlagAvailable--;
         elCell.innerText = FLAG;
     }
 
@@ -114,43 +151,64 @@ function rightClicker(elCell) {
     renderFlagAvailable();
 
     // If flag available counter is 0 - check win
-    if (!gFlagAviable) winCheck();
+    if (!gFlagAvailable) winCheck();
 }
 
-// Define cellLeftClicked() [gets elCell to handle the cell clicked]
-function cellLeftClicked(elCell) {
+// Define cellLeftClicked()     - Parameter:
+//                              elCell = DOM obj, to determine which cell has clicked
+//                              - Use: when client left click on a cell
+function leftClickCell(elCell) {
 
-    // Define helping vars (cell's-i &j)
-    var cellI = elCell.dataset.i;
-    var cellJ = elCell.dataset.j;
-    var cell = gBoard[cellI][cellJ];
+    // Define helpers vars
+    var i = +elCell.dataset.i;
+    var j = +elCell.dataset.j;
+    var cell = gBoard[i][j];
+
+    // If cell is marked (flaged) || game finished- prevent click
+    if (cell.isMarked || gGame.isLost) return;
+
+    // If it's hint mode and nothing to reveal
+    if (gGame.isHintMode && !gGame.isPlaying) {
+        unRunHint();
+        return;
+    }
 
     // If it's game's kick-off - start clock, and mark location so no mines will be placed there
     if (!gGame.isPlaying) {
         cell.isFirst = true;
-        runGame(gGame.mines);
+        runGame(gGame.mine);
     };
 
-    // If cell is marked (flaged) - prevent reveal
-    if (cell.isMarked) return;
+    // If game is hint moded reveal negs via hintReveal()
+    if (gGame.isHintMode) {
+        hintReveal({ i, j });
+        gHintsAvailable--;
+        renderHintAvailable();
+        return;
+    }
 
     // Update cell isShown and add cell-shown class to make it looks clicked
     cell.isShown = true;
     elCell.classList.add(`cell-shown`);
 
-    // If cell is mine - game over
+    // If cell is mine reduce life by one and change cell's bgc to red
     if (cell.isMine) {
+        gGame.life--;
+        renderLifeAvailable();
         elCell.style.backgroundColor = `red`;
 
-        if (!gGame.lives) {
+        // If cllient has no lives available it's game over
+        if (!gGame.life) {
             gameOver();
             return;
+
+            // Else (client has lives) - show the mine, reduce life & flag, and render it to DOM
         } else {
-            cell.innerText = MINE;
-            gGame.lives--;
-            renderLivesAvailable();
-            gFlagAviable--;
+            elCell.innerText = MINE;
+
+            gFlagAvailable--;
             renderFlagAvailable();
+            return;
         }
     }
 
@@ -159,32 +217,34 @@ function cellLeftClicked(elCell) {
     if (cell.minesAroundCount) elCell.innerText = cell.minesAroundCount;
 
     // If cell has no mine negs - reveal all negs
-    else revealNegs({ i: +cellI, j: +cellJ });
+    else revealNegs({ i: +i, j: +j });
 
-    // If no flag aviable check win
-    if (!gFlagAviable) winCheck();
+    // If no flag available check win
+    if (!gFlagAvailable) winCheck();
 }
 
-// Define runGame() [starts game time interval, place mines & prevent changing difficulty]
+// Define runGame()         - Parameter:
+//                          mineNum = int, uses to determine how many mines to place
+//                          - Use: Place mines on the board
 function runGame(mineNum) {
 
-    // Set gGame isPlaying true (so this function wont run every click)
+    // Set gGame isPlaying true (so this function won't run every click)
     gGame.isPlaying = true;
-
-    // Define running secs to be show on timer
-    var runningSecs = 0;
-
-    // Starts the interval (every 1 sec the timer increase by 1 and rendering it to DOM)
-    gGameInterval = setInterval(function () {
-        runningSecs++;
-        document.querySelector(`.timer-digits`).innerText = runningSecs;
-    }, 1000);
 
     // Place mines and set mines negs counters
     placeMines(mineNum);
     setMinesNegsCount();
 
-    // Prevent changing game difficulty
+    // Define running secs to be show on timer
+    var runningSecs = 0;
+
+    // Starts the timer interval (every 1 sec the timer increase by 1 and rendering it to DOM)
+    gGameInterval = setInterval(function () {
+        runningSecs++;
+        document.querySelector(`.timer-digits`).innerText = runningSecs;
+    }, 1000);
+
+    // Loop over game's difficulties DOM elements and hide them, so the client can not change the game's difficulty during a game
     for (var i = 0; i < gElDifficultyBtns.length; i++) {
         if (gElDifficultyBtns[i].checked) continue;
         else {
@@ -192,48 +252,29 @@ function runGame(mineNum) {
             gElDifficultySpans[i].hidden = true;
         }
     }
-}
 
-// Define gameOver() [used when click on mine and no lives remain]
-function gameOver() {
-
-    // Show all mines on board (except those who marked as mines)
-    for (var idx = 0; idx < gMineLocations.length; idx++) {
-        var currMineI = gMineLocations[idx].i;
-        var currMineJ = gMineLocations[idx].j;
-
-        var currMineCell = document.querySelector(`.cell-${currMineI}-${currMineJ}`);
-
-        if (gBoard[currMineI][currMineJ].isMarked) {
-            currMineCell.classList.add(`cell-mark-correctly`);
-        } else {
-            currMineCell.classList.add(`cell-shown`);
-            currMineCell.innerText = MINE;
-        }
+    var elDifficultySeperators = document.querySelectorAll(`.difficulties-seperator`);
+    for (var i = 0; i < elDifficultySeperators.length; i++) {
+        elDifficultySeperators[i].style.display = `none`;
     }
-
-    // Pause game
-    gGame.isPlaying = false;
-    clearInterval(gGameInterval);
-
-    // Change emoji face
-    document.querySelector(`.restart-btn`).innerText = DEAD;
 }
 
-// Define revealNegs [gets location as object {i, j}, like {0,0}]
+// Define revealNegs        - Parameter:
+//                          location = obj ({i, j}), uses for cell's coords
+//                          - Use: reveal negs if cell clicked is empty
 function revealNegs(location) {
 
-    // For loops goes to get negs of selected cell
-    // A loop goes to rows negs
+    // Loop over negs of selected cell 
+    // The i (row) loop
     for (var rowIdx = (location.i - 1); rowIdx <= (location.i + 1); rowIdx++) {
 
-        // If selected row is not in mat boundaries > skip loop iteration
+        // If selected row is not in mat boundaries > skip iteration
         if (rowIdx < 0 || rowIdx === gBoard.length) continue;
 
-        // A loop goes to cols negs (more specific)
+        // The j (col) loop (specific cell for check)
         for (var colIdx = (location.j - 1); colIdx <= (location.j + 1); colIdx++) {
 
-            // If selected col is not in mat boundaries || curr cell is the cell to check negs > skip loop iteration
+            // If selected col is not in mat boundaries || curr cell is the cell to reveal > skip loop iteration
             if (colIdx < 0 ||
                 colIdx === gBoard.length ||
                 (rowIdx === location.i && colIdx === location.j)) continue;
@@ -258,32 +299,133 @@ function revealNegs(location) {
                 elCurrCell.classList.add(`cell-shown`);
                 revealNegs({ i: rowIdx, j: colIdx });
             }
+
         }
+
     }
+
 }
 
-// Define winCheck()
-function winCheck() {
+// Define revealHint()      - Parameter:
+//                          location = obj ({i, j}), uses for cell's coords
+//                          - Use: reveal cell & cell's neg content via revealCell()
+function hintReveal(location) {
 
-    // Loops go over all mat, if all cells are shown or marked as mine - we have a winner
+    // Loop over negs of selected cell 
+    // The i (row) loop
+    for (var rowIdx = (location.i - 1); rowIdx <= (location.i + 1); rowIdx++) {
+
+        // If selected row is not in mat boundaries > skip iteration
+        if (rowIdx < 0 || rowIdx > (gBoard.length - 1)) continue;
+
+        // The j (col) loop (specific cell for check)
+        for (var colIdx = (location.j - 1); colIdx <= (location.j + 1); colIdx++) {
+
+            // If selected col is not in mat boundaries || curr cell is already shown > skip loop iteration
+            if (colIdx < 0 ||
+                colIdx > (gBoard.length - 1) ||
+                gBoard[rowIdx][colIdx].isShown) continue;
+
+            // Reveal cell for one second via revealCell()
+            revealCell({ i: rowIdx, j: colIdx });
+        }
+
+    }
+
+    // Get out of hint mode
+    unRunHint();
+
+}
+
+// Define revealCell        - Parameter:
+//                          location = obj ({i, j}), uses for cell's coords
+//                          - Use: reveal cell content for 1 sec
+function revealCell(location) {
+
+    // Define helpers vars
+    var cellOnMat = gBoard[location.i][location.j];
+    var elCell = document.querySelector(`.cell-${location.i}-${location.j}`);
+    var cellContent = '';
+
+    // Define cell content to reveal
+    cellContent = (cellOnMat.isMine) ? MINE : (cellOnMat.minesAroundCount) ? cellOnMat.minesAroundCount : '';
+
+    // Reveal the content & indicate it
+    elCell.innerText = cellContent;
+    elCell.classList.add(`cell-reveal`);
+
+    // Stop revealing after 1 sec
+    setTimeout(function () {
+        elCell.innerText = '';
+        elCell.classList.remove(`cell-reveal`);
+    }, 1000);
+}
+
+// Define runHint()     - Parameter:
+//                      elHint = DOM obj, use to determine which hint emoji to "light on"
+//                      - Use: Set hint mode and "light on" selected hint emoji
+function runHint(elHint) {
+
+    // toggle gGame.isHintMode
+    gGame.isHintMode = !gGame.isHintMode;
+
+    // If hint mode is on - "light on" the selected emoji
+    if (gGame.isHintMode) {
+        elHint.style.filter = `none`;
+
+        // Else - get out of hint mode via unRunHint()
+    } else unRunHint();
+
+}
+
+// Define printRandomSafeCell()         - Use: render safe cell to user for one sec
+function printRandomSafeCell() {
+
+    // If game hasn't start - return
+    if (!gGame.isPlaying) return;
+
+    // Define safe cells arr
+    var safeCells = [];
+
+    // Get list of safe cells
     for (var i = 0; i < gBoard.length; i++) {
         for (var j = 0; j < gBoard.length; j++) {
-            var currCell = gBoard[i][j];
-            if (!currCell.isShown && !currCell.isMarked) return;
+            if (gBoard[i][j].isShown || gBoard[i][j].isMine) continue;
+            else safeCells.push({ i, j });
         }
     }
 
-    gameWin();
+    // If there are no safe cells - return
+    if (!safeCells.length) return;
+
+    // Define helpers vars
+    var safeCell = safeCells[getRandomInt(0, safeCells.length)];
+    var elSafeCell = document.querySelector(`.cell-${safeCell.i}-${safeCell.j}`);
+
+    // Show safe cell for 1 sec
+    elSafeCell.classList.add(`cell-safe`);
+
+    setTimeout(function () {
+        elSafeCell.classList.remove(`cell-safe`);
+    }, 1000);
+
+    // Decrease safe cells available
+    gSafeClickAvailable--;
+    renderSafeClickAvailable();
+
 }
 
-// Define gameWin()
-function gameWin() {
-    // TODO: best time records handle
+// Define unRunHint()           - Use: make sure isHintMode is false & all light bulb are "light off"
+function unRunHint() {
 
-    // Pause game
-    gGame.isPlaying = false;
-    clearInterval(gGameInterval);
+    // Set hint mode off
+    gGame.isHintMode = false;
 
-    // Change emoji face
-    document.querySelector(`.restart-btn`).innerText = WIN;
+    // Get all hints emojis DOM elements
+    var elHints = document.querySelectorAll(`.hint-emoji`);
+
+    // Set all light bulb "light off"
+    for (var i = 0; i < elHints.length; i++) {
+        elHints[i].style.filter = `grayscale(100%)`;
+    }
 }

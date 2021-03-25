@@ -2,63 +2,159 @@
 <html>
 
 <head>
+    <!-- Metas -->
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-
-    <title>Minesweeper by Oren Yaniv</title>
-
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Page title & ico -->
+    <title>Minesweeper by Oren Yaniv</title>
+    <link rel="icon" href="./img/favicon.ico" type="image/x-icon" />
+
+    <!-- Google fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap">
+
+    <!-- css styles link -->
     <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/modal.css">
 </head>
+
 
 <body>
 
-    <!-- Difficulties (auto select easy when load by game.js) -->
-    <div class="difficulties-container">
-        <div class="difficulty">
-            <input type="radio" name="difficulty-btn" onclick="initGame(4, 2, 1)" data-mat_size="4" data-mine_num="2">
-            <span class="difficulty-text" data-lives="1">Easy (16)</span>
-            </input>
+    <!-- Logo & moto -->
+    <div class="header">
+        <span class="header-title">M<img src="./img/logo.png" class=header-logo />NE SWEEPER</span>
+        <span class="header-moto">(Shula M💥kshim)</span>
+    </div>
+
+
+    <!-- Game section (to hide when modal appers) -->
+    <div class="game-section">
+
+        <!-- Difficulties (auto select easy when load by game.js) -->
+        <div class="difficulties-container">
+            <span class="difficulties-title">Level:</span>
+            <div class="difficulty">
+                <input type="radio" name="difficulty-btn" onclick="initGame(4, 2, 1)" data-mat_size="4"
+                    data-mine_num="2" data-lives="1" />
+                <span class="difficulty-text">Easy (16)</span>
+            </div>
+            <span class="difficulties-seperator"></span>
+            <div class="difficulty">
+                <input type="radio" name="difficulty-btn" onclick="initGame(8, 12, 2)" data-mat_size="8"
+                    data-mine_num="12" data-lives="2" />
+                <span class="difficulty-text">Medium (64)</span>
+            </div>
+            <span class="difficulties-seperator"></span>
+            <div class="difficulty">
+                <input type="radio" name="difficulty-btn" onclick="initGame(12, 30, 3)" data-mat_size="12"
+                    data-mine_num="30" data-lives="3" />
+                <span class="difficulty-text">Expert (144)</span>
+            </div>
         </div>
-        <div class="difficulty">
-            <input type="radio" name="difficulty-btn" onclick="initGame(8, 12, 2)" data-mat_size="8" data-mine_num="12"
-                data-lives="2"><span class="difficulty-text">Medium (64)</span>
-            </input>
+
+        <!-- Best score -->
+        <div class="best-score">
+            <span class="best-score-title">Best score: </span>
+            <span class="best-score-span"></span>
         </div>
-        <div class="difficulty">
-            <input type="radio" name="difficulty-btn" onclick="initGame(12, 30, 3)" data-mat_size="12"
-                data-mine_num="30" data-lives="3">
-            <span class="difficulty-text">Expert (144)</span>
-            </input>
+
+        <!-- lives -->
+        <div class="feature-container-block">
+            <span class="feature-title" onclick="renderModal(`About lives:`, `Each level has different number of lives:
+        &bull; Easy - 1
+        &bull; Medium - 2
+        &bull; Expert - 3
+        
+        Once you clicked a mine, you are dead and one life is reduced.
+        When no lives remain, you are dead and the game end!
+        
+        Notice: when you finish the game, each life remain reduce the score by 10 points (lowest score is better, so that's good).
+        Got it?`)">Lives</span>:
+            <span class="lives-avialable"></span>
+        </div>
+
+        <!-- Hints -->
+        <div class="feature-centerizer">
+            <div class="feature-container-inline">
+                <span class="feature-title" onclick="renderModal(`About hints:`, `Each level has different number of hints:
+        &bull; Easy - 1
+        &bull; Medium - 2
+        &bull; Expert - 3
+        
+        Once you select hint mode (clicking a bulb), you are able to reveal a cell and his negs for one sec by clicking on him.
+        
+        Notice: when you finish the game, each hint remain reduce the score by 5 points (lowest score is better, so that's good).
+        Got it?`)">Hints</span>:
+                <span class="hints-avialable"></span>
+            </div>
+
+            <!-- Safe clicks -->
+            <div class="feature-container-inline">
+                <span class="feature-title" onclick="renderModal(`About Safe clicks:`, `Each level has different number of safe clicks:
+                &bull; Easy - 1
+                &bull; Medium - 2
+                &bull; Expert - 3
+                
+                Once you select safe click (clicking a shield), You'll get one cell mark with green, this cell is empty and safe to be clicked.
+                
+                Notice: when you finish the game, each safe click remain reduce the score by 2 points (lowest score is better, so that's good).
+                Got it?`)">Safe clicks</span>:
+                <span class="safe-clicks-avialable"></span>
+            </div>
+        </div>
+
+
+        <!-- Game regular features -->
+        <div class="reg-features-centrizer">
+
+            <!-- flags -->
+            <div class="reg-feature-container">
+                <div class="reg-feature-title">Flags</div>
+                <div class="reg-feature-nums flags-available"></div>
+            </div>
+
+            <!-- flags -->
+            <div class="reg-feature-container">
+                <div class="restart-btn" onclick="initGame()"></div>
+            </div>
+
+            <!-- timer -->
+            <div class="reg-feature-container">
+                <div class="reg-feature-title">Timer</div>
+                <div class="reg-feature-nums timer-digits"></div>
+            </div>
+
+        </div>
+
+
+        <!-- The game section -->
+        <div class="game-board" oncontextmenu="return false;">
+        </div>
+
+    </div>
+
+
+    </div>
+
+
+
+    <!-- The modal -->
+    <div class="modal-full-screen">
+        <div class="modal-container">
+            <div class="modal-title"></div>
+            <div class="modal-text"></div>
+            <div class="modal-close-btn" onclick="closeModal()">Got it!</div>
         </div>
     </div>
 
-    <!-- Timer -->
-    <div class="timer-container">
-        time: <span class="timer-digits">0</span> secs
-    </div>
 
-    <!-- Flags available -->
-    Flags:<div class="flag-available"></div>
-
-    <!-- Lives available -->
-    Lives:<div class="lives-available"></div>
-
-    <!-- Hints -->
-    Hints:<div class="hints-available"></div>
-
-    <!-- Restart btn (smile / sad emoji) -->
-    <div class="restart-container">
-        <div class="restart-btn" onclick="initGame()"></div>
-    </div>
-
-    <!-- The game section -->
-    <div class="game-board" oncontextmenu="return false;">
-    </div>
-
-
-    <script src="./js/utils.js"></script>
+    <!-- Scripts -->
+    <script src="./js/util.js"></script>
+    <script src="./js/render.js"></script>
     <script src="./js/game.js"></script>
+    <script src="./js/game-end.js"></script>
 
 </body>
 
